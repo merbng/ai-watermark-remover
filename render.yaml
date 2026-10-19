@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: ai-watermark-remover
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: ""
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: DASHSCOPE_API_KEY
+        sync: false
+      - key: RATE_LIMIT_PER_HOUR
+        value: "40"

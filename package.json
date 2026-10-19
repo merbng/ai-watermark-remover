@@ -1,0 +1,15 @@
+{
+  "name": "ai-watermark-remover",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI 在线图片去水印 — 专除图片右下角「AI生成 / 豆包AI生成」标记，仅重建标记区域，其余像素不动",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["watermark", "ai", "qwen", "dashscope", "image-editing"],
+  "license": "MIT"
+}
