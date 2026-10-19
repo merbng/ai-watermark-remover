@@ -33,8 +33,42 @@ function loadEnvFile() {
 }
 loadEnvFile();
 
-const DASHSCOPE_KEY = process.env.DASHSCOPE_API_KEY || '';
-const RATE_LIMIT_PER_HOUR = Number(process.env.RATE_LIMIT_PER_HOUR || 40);
+/*
+ * 清洗环境变量里的 API Key。
+ * 常见误操作：把整个 .env 文件（多行）一次性粘进云平台的单个变量输入框，
+ * 值会变成 "sk-xxx\nRATE_LIMIT_PER_HOUR=40" 这类脏数据，
+ * 直接拼进 Authorization 头会抛 "invalid header value"。
+ * 这里统一提取第一个合法的 sk- 令牌。
+ */
+function normalizeApiKey(raw) {
+  if (!raw) return '';
+  let s = String(raw).trim();
+  // 处理字面量 \n（某些面板会把换行转义成两个字符）
+  s = s.replace(/\\r\\n|\\n|\\r/g, '\n');
+  // 优先匹配「KEY=sk-xxx」或裸 sk-xxx 的整行
+  for (const line of s.split(/[\r\n]+/)) {
+    const m = /^\s*(?:[A-Za-z0-9_]+\s*=\s*)?(sk-[A-Za-z0-9._-]{8,})\s*$/.exec(line);
+    if (m) return m[1];
+  }
+  // 兜底：从任意位置抓第一个 sk- 令牌（遇到空格/引号/分号即止）
+  const m2 = /(sk-[A-Za-z0-9._-]{8,})/.exec(s);
+  if (m2) return m2[1];
+  return s.split(/[\s,;'"`]+/)[0] || '';
+}
+
+const RAW_KEY = process.env.DASHSCOPE_API_KEY || '';
+const DASHSCOPE_KEY = normalizeApiKey(RAW_KEY);
+// 限流数值同样做容错：Number("40 RATE_LIMIT...") 会得到 NaN
+const rateRaw = parseInt(String(process.env.RATE_LIMIT_PER_HOUR || '40'), 10);
+const RATE_LIMIT_PER_HOUR = Number.isFinite(rateRaw) && rateRaw > 0 ? rateRaw : 40;
+// Key 合法形态校验：必须是以 sk- 开头的单行令牌
+const KEY_OK = /^sk-[A-Za-z0-9._-]{8,}$/.test(DASHSCOPE_KEY);
+if (RAW_KEY && RAW_KEY.trim() !== DASHSCOPE_KEY) {
+  console.warn('[WatermarkZero] DASHSCOPE_API_KEY 含有换行或多余内容，已自动提取有效 Key（建议在平台上重新只填 Key 本身）');
+}
+if (!KEY_OK) {
+  console.warn('[WatermarkZero] 警告：DASHSCOPE_API_KEY 缺失或格式不合法，去水印接口将不可用');
+}
 
 /* 简单的按 IP 限流，避免公开链接被刷爆 API 额度 */
 const rateHits = new Map();
@@ -324,8 +358,11 @@ async function fetchAsDataUrl(url) {
 }
 
 async function handleRemove(req, res) {
-  if (!DASHSCOPE_KEY) {
-    return sendJson(res, 503, { ok: false, error: '服务端未配置 DASHSCOPE_API_KEY，请设置环境变量后重启' });
+  if (!KEY_OK) {
+    return sendJson(res, 503, {
+      ok: false,
+      error: '服务端 DASHSCOPE_API_KEY 缺失或格式不合法（常见原因：把 .env 多行内容粘进了同一个变量），请只填写以 sk- 开头的一行 Key 后重新部署',
+    });
   }
   if (isRateLimited(req)) {
     return sendJson(res, 429, { ok: false, error: `已超过每小时 ${RATE_LIMIT_PER_HOUR} 次的使用上限，请稍后再试` });
@@ -375,13 +412,19 @@ async function handleRemove(req, res) {
     else if (/InvalidApiKey|Unauthorized/i.test(raw)) friendly = 'API Key 无效，请检查配置';
     else if (/Throttling/i.test(raw)) friendly = '请求过于频繁，请稍等几秒后重试';
     else if (/abort/i.test(raw)) friendly = '网络超时，请重试';
+    else if (/invalid header value|Headers\.append|Invalid character in header/i.test(raw)) {
+      friendly = '服务端 API Key 配置异常（值里混入了换行或多余字符），请重新只填写以 sk- 开头的 Key';
+    }
     sendJson(res, 502, { ok: false, error: friendly, raw });
   }
 }
 
 async function handleDetect(req, res) {
-  if (!DASHSCOPE_KEY) {
-    return sendJson(res, 503, { ok: false, error: '服务端未配置 DASHSCOPE_API_KEY，请设置环境变量后重启' });
+  if (!KEY_OK) {
+    return sendJson(res, 503, {
+      ok: false,
+      error: '服务端 DASHSCOPE_API_KEY 缺失或格式不合法（常见原因：把 .env 多行内容粘进了同一个变量），请只填写以 sk- 开头的一行 Key 后重新部署',
+    });
   }
   if (isRateLimited(req)) {
     return sendJson(res, 429, { ok: false, error: `已超过每小时 ${RATE_LIMIT_PER_HOUR} 次的使用上限，请稍后再试` });
@@ -407,6 +450,9 @@ async function handleDetect(req, res) {
     let friendly = raw;
     if (/Throttling/i.test(raw)) friendly = '定位请求过于频繁，请稍等几秒后重试';
     else if (/abort/i.test(raw)) friendly = '定位超时，请重试';
+    else if (/invalid header value|Headers\.append|Invalid character in header/i.test(raw)) {
+      friendly = '服务端 API Key 配置异常（值里混入了换行或多余字符），请重新只填写以 sk- 开头的 Key';
+    }
     sendJson(res, 502, { ok: false, error: friendly, raw });
   }
 }
@@ -450,6 +496,8 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, {
         ok: true,
         hasKey: Boolean(DASHSCOPE_KEY),
+        keyOk: KEY_OK,
+        keyWasSanitized: Boolean(RAW_KEY) && RAW_KEY.trim() !== DASHSCOPE_KEY,
         rateLimitPerHour: RATE_LIMIT_PER_HOUR,
         imageModels: Object.keys(IMAGE_MODELS),
         visionModels: Object.keys(VISION_MODELS),
