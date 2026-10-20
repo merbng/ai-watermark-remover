@@ -357,6 +357,35 @@ async function fetchAsDataUrl(url) {
   }
 }
 
+/* 内容审核拦截判断：阿里云对输入/输出图都会做安全检测 */
+function isModerationError(msg) {
+  return /inappropriate content|data_inspection_failed|inappropriate|risk.*content|content.*risk/i.test(String(msg || ''));
+}
+
+/* 审核误伤时常用于重试的保守提示词：明确不要生成人物/肢体 */
+const SAFE_PROMPT_MASK =
+  '仅用遮罩周边原有的背景纹理、颜色和光影填补白色遮罩区域，' +
+  '不要生成人物、人脸、肢体、皮肤或任何文字，遮罩以外的画面保持完全不变。';
+
+/* 执行一次图像编辑，返回结果图 dataURL */
+async function runEdit(model, ctx) {
+  const { imgDataUrl, maskDataUrl, prompt, useMask } = ctx;
+  if (IMAGE_MODELS[model].kind === 'imageedit') {
+    const input = {
+      function: useMask ? 'description_edit_with_mask' : 'description_edit',
+      prompt,
+      base_image_url: imgDataUrl,
+    };
+    if (useMask) input.mask_image_url = maskDataUrl;
+    const taskId = await dashscopeSubmit({ model, input, parameters: { n: 1, watermark: false } });
+    const url = await dashscopePoll(taskId);
+    return fetchAsDataUrl(url);
+  }
+  // 同步多模态模型（wan2.7-image-pro / qwen-image-3.0）
+  const url = await multimodalEdit(model, imgDataUrl, maskDataUrl, prompt);
+  return fetchAsDataUrl(url);
+}
+
 async function handleRemove(req, res) {
   if (!KEY_OK) {
     return sendJson(res, 503, {
@@ -388,23 +417,36 @@ async function handleRemove(req, res) {
   const maskDataUrl = mask ? `data:${mask.mime};base64,${mask.base64}` : null;
 
   try {
-    let image;
-    if (IMAGE_MODELS[model].kind === 'imageedit') {
-      const input = {
-        function: useMask ? 'description_edit_with_mask' : 'description_edit',
-        prompt,
-        base_image_url: imgDataUrl,
-      };
-      if (useMask) input.mask_image_url = maskDataUrl;
-      const taskId = await dashscopeSubmit({ model, input, parameters: { n: 1, watermark: false } });
-      const url = await dashscopePoll(taskId);
-      image = await fetchAsDataUrl(url);
-    } else {
-      // 同步多模态模型（wan2.7-image-pro / qwen-image-3.0）
-      const url = await multimodalEdit(model, imgDataUrl, maskDataUrl, prompt);
-      image = await fetchAsDataUrl(url);
+    // 首选用户选定的引擎；若被内容审核误伤，自动换引擎 + 保守提示词重试一次
+    const order = [model, 'wanx2.1-imageedit', 'wan2.7-image-pro', 'qwen-image-3.0']
+      .filter((m, i, arr) => IMAGE_MODELS[m] && arr.indexOf(m) === i);
+
+    let image = null;
+    let usedModel = model;
+    let lastErr = null;
+    let moderationHit = false;
+
+    for (let i = 0; i < order.length; i++) {
+      const m = order[i];
+      const p = moderationHit ? SAFE_PROMPT_MASK : prompt;
+      try {
+        image = await runEdit(m, { imgDataUrl, maskDataUrl, prompt: p, useMask });
+        usedModel = m;
+        break;
+      } catch (e) {
+        lastErr = e;
+        const msg = String(e.message || e);
+        if (isModerationError(msg)) {
+          // 审核拦截：换下一个引擎继续试
+          moderationHit = true;
+          continue;
+        }
+        break; // 其他错误（额度/超时等）换引擎也没用，直接抛出
+      }
     }
-    sendJson(res, 200, { ok: true, image, model });
+
+    if (!image) throw lastErr || new Error('图像处理失败');
+    sendJson(res, 200, { ok: true, image, model: usedModel, fallback: usedModel !== model });
   } catch (e) {
     const raw = String(e.message || e);
     let friendly = raw;
@@ -414,6 +456,8 @@ async function handleRemove(req, res) {
     else if (/abort/i.test(raw)) friendly = '网络超时，请重试';
     else if (/invalid header value|Headers\.append|Invalid character in header/i.test(raw)) {
       friendly = '服务端 API Key 配置异常（值里混入了换行或多余字符），请重新只填写以 sk- 开头的 Key';
+    } else if (isModerationError(raw)) {
+      friendly = '图片被内容安全审核拦截（含人物/皮肤的照片最容易误判），已自动尝试其他引擎仍未通过。建议：把标记框缩到只框住文字、换一张图，或先把人像区域裁掉再处理';
     }
     sendJson(res, 502, { ok: false, error: friendly, raw });
   }
