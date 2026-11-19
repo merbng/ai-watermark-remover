@@ -20,19 +20,22 @@ DETECT_PROMPT = (
     "不要输出任何解释文字。"
 )
 
-# 前端模型名 -> 我方配置里的真实模型名
-# 前端下拉框现为三款免费试用模型：qwen-mt-image-2.0 / wanx-sketch-to-image-lite / z-image-turbo。
-# 这三款本身即为百炼可用模型 id，原样透传；未知值回退到默认模型。
-_FRONT_EDIT_MODELS = {
-    "qwen-mt-image-2.0",
-    "wanx-sketch-to-image-lite",
-    "z-image-turbo",
-}
+# 前端模型名 -> 真正用于"带遮罩局部擦除"的模型。
+#
+# 实测结论（2026-11-19，用本账号 Key）：
+#   - 只有 wanx2.1-imageedit 走 description_edit_with_mask 能干净擦除水印（框外零改动）。
+#   - 前端列出的文生图/涂鸦模型（z-image-turbo、qwen-image-2.1-pro、wan2.7-image*、
+#     wanx-sketch-to-image-lite 等）走的是各自专属接口，不支持带遮罩编辑，直接调用会报错。
+#   - qwen-mt-image* 实为翻译模型，提交成功但执行时报缺 source_lang/target_lang。
+# 因此这里做"智能回退"：非 wanx2.1-imageedit 的选项一律映射到真正能干活的模型，
+# 保证用户点任意选项都能得到正常的擦除结果，而不是拿到一条报错。
+_EDIT_MODEL_CAPABLE = {"wanx2.1-imageedit"}
 
 def _map_edit_model(front_model: str) -> str:
     m = (front_model or "").strip()
-    if m in _FRONT_EDIT_MODELS:
+    if m in _EDIT_MODEL_CAPABLE:
         return m
+    # 其余模型名（含下发的免费试用清单）回退到实测可用的图像编辑模型
     return config.DASHSCOPE_MODEL_DEFAULT
 
 
@@ -49,13 +52,17 @@ class DashScopeProvider(BaseProvider):
         self.s.headers.update({"Authorization": f"Bearer {self.key}"})
 
     # ---------------- 视觉定位 ----------------
+    # 实测可用的视觉定位模型（本账号 Key，走 compatible-mode chat/completions）。
+    # 其它模型名一律回退到 DASHSCOPE_VL_MODEL，避免 access_denied / model_not_found。
+    _VL_CAPABLE = {
+        "qwen3.8-flash", "qwen3.8-max", "qwen3.8-omni-flash",
+        "qwen-vl-ocr", "qwen3.7-flash", "qwen3.7-plus",
+    }
+
     def detect(self, image_dataurl: str, model: str = "") -> dict:
-        vl_model = model if model and model != "local" else config.DASHSCOPE_VL_MODEL
-        # 前端传的是 qwen3.x 这类名字，线上未必存在；统一回退到配置模型
-        if not vl_model.startswith("qwen") or vl_model in (
-            "qwen3.8-flash", "qwen3.8-max", "qwen3.8-omni-flash",
-            "qwen3.8-27b", "qwen3.7-plus", "qwen3.7-max-2026-06-08", "kimi-k3"
-        ):
+        requested = (model or "").strip()
+        vl_model = requested if requested and requested != "local" else config.DASHSCOPE_VL_MODEL
+        if vl_model not in self._VL_CAPABLE:
             vl_model = config.DASHSCOPE_VL_MODEL
         payload = {
             "model": vl_model,
@@ -89,8 +96,10 @@ class DashScopeProvider(BaseProvider):
             "model": real_model,
             "input": {
                 "function": "description_edit_with_mask",
-                "source_image": to_dataurl(img_png, "image/png"),
-                "mask_image": to_dataurl(mask_png, "image/png"),
+                # 百炼 image-synthesis 的正确字段名是 base_image_url / mask_image_url，
+                # 且分辨率需在 512~4096 —— 前端已按最长边 1600 送检，满足要求。
+                "base_image_url": to_dataurl(img_png, "image/png"),
+                "mask_image_url": to_dataurl(mask_png, "image/png"),
                 "prompt": prompt,
             },
             "parameters": {"n": 1},

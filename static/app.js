@@ -15,9 +15,20 @@ const REMOVE_PROMPT =
 
 /* ---------- 模型注册表（与后端一致） ---------- */
 const EDIT_MODELS = {
-  'qwen-mt-image-2.0': { hint: '千问图像 2.0 · 免费试用', tip: '免费试用模型，通常 10 ~ 30 秒' },
-  'wanx-sketch-to-image-lite': { hint: '万相涂鸦 · 免费试用 · 轻量快速', tip: '轻量模型，通常 10 ~ 20 秒' },
-  'z-image-turbo': { hint: 'Z-Image-Turbo · 免费试用 · 极速', tip: '极速模型，通常 10 ~ 20 秒' },
+  // ✓ 实测可用：唯一走带遮罩局部编辑、能干净擦除且框外零改动的模型
+  'wanx2.1-imageedit': { hint: '✓ 推荐 · 带遮罩精修 · 框外零改动', tip: '万相图像编辑，通常 15 ~ 40 秒' },
+  // ⚠️ 免费试用额度模型：多数走文生图/翻译接口，不支持带遮罩编辑，
+  //    选中后后端会自动回退到 wanx2.1-imageedit 执行，保证正常出图。
+  'qwen-mt-image-2.0': { hint: '⚠️ 免费额度 · 自动兼容处理', tip: '将使用兼容引擎处理，通常 15 ~ 40 秒' },
+  'qwen-mt-image': { hint: '⚠️ 免费额度 · 自动兼容处理', tip: '将使用兼容引擎处理，通常 15 ~ 40 秒' },
+  'z-image-turbo': { hint: '⚠️ 免费额度 · 自动兼容处理', tip: '将使用兼容引擎处理，通常 15 ~ 40 秒' },
+  'qwen-image-2.1-pro': { hint: '⚠️ 免费额度 · 自动兼容处理', tip: '将使用兼容引擎处理，通常 15 ~ 40 秒' },
+  'qwen-image-2.1-turbo': { hint: '⚠️ 免费额度 · 自动兼容处理', tip: '将使用兼容引擎处理，通常 15 ~ 40 秒' },
+  'qwen-image-3.0-pro': { hint: '⚠️ 免费额度 · 自动兼容处理', tip: '将使用兼容引擎处理，通常 15 ~ 40 秒' },
+  'wan2.7-image-pro': { hint: '⚠️ 免费额度 · 自动兼容处理', tip: '将使用兼容引擎处理，通常 15 ~ 40 秒' },
+  'wan2.7-image': { hint: '⚠️ 免费额度 · 自动兼容处理', tip: '将使用兼容引擎处理，通常 15 ~ 40 秒' },
+  'wanx-style-repaint-v1': { hint: '⚠️ 免费额度 · 自动兼容处理', tip: '将使用兼容引擎处理，通常 15 ~ 40 秒' },
+  'wanx-sketch-to-image-lite': { hint: '⚠️ 免费额度 · 自动兼容处理', tip: '将使用兼容引擎处理，通常 15 ~ 40 秒' },
 };
 
 const state = {
@@ -35,7 +46,7 @@ const state = {
 /* ---------------- 模型选择 ---------------- */
 const selectEditModel = $('select-edit-model');
 const selectDetectModel = $('select-detect-model');
-const LS_MODELS = 'wz_models_v1';
+const LS_MODELS = 'wz_models_v2';
 
 (function restoreModels() {
   try {

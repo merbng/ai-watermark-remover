@@ -8,11 +8,13 @@ services:
     startCommand: "gunicorn app:app -b 0.0.0.0:$PORT --timeout 300 --workers 1"
     healthCheckPath: /api/health
     envVars:
-      # opencv 本地修复引擎：免费、无需 Key、云端可直接跑，零配置真去水印
+      # 生成式 AI 擦除：走百炼 wanx2.1-imageedit（带遮罩精修，框外零改动）
       - key: EDIT_PROVIDER
-        value: opencv
-      # 云端无法访问本机反代，定位用本地像素检测（瞬时、无需 Key）
+        value: dashscope
+      # AI 视觉定位：qwen3.8-flash（精准识别右下角水印框）
       - key: DETECT_PROVIDER
-        value: opencv
-      # 想升级为生成式 AI 擦除时，在 Render Dashboard 里把 EDIT_PROVIDER
-      # 改为 dashscope 并新增 DASHSCOPE_API_KEY 环境变量即可（Key 不要写进此文件）。
+        value: dashscope
+      - key: DASHSCOPE_VL_MODEL
+        value: qwen3.8-flash
+      # DASHSCOPE_API_KEY 已在 Render Dashboard 以敏感变量配置，不写进此文件。
+      # 若想改回离线免费引擎：把 EDIT_PROVIDER / DETECT_PROVIDER 都改为 opencv 即可。

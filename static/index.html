@@ -74,26 +74,34 @@
               <div class="model-select-block">
                 <label class="model-label" for="select-edit-model">去水印引擎</label>
                 <select id="select-edit-model" class="model-select">
-                  <optgroup label="图像编辑模型（免费试用）">
-                    <option value="qwen-mt-image-2.0">qwen-mt-image-2.0（默认）</option>
+                  <optgroup label="✓ 推荐（实测可用）">
+                    <option value="wanx2.1-imageedit">wanx2.1-imageedit（默认 · 带遮罩精修）</option>
+                  </optgroup>
+                  <optgroup label="⚠️ 免费试用额度（自动兼容处理）">
+                    <option value="qwen-mt-image-2.0">qwen-mt-image-2.0</option>
+                    <option value="qwen-mt-image">qwen-mt-image</option>
+                    <option value="z-image-turbo">z-image-turbo</option>
+                    <option value="qwen-image-2.1-pro">qwen-image-2.1-pro</option>
+                    <option value="qwen-image-2.1-turbo">qwen-image-2.1-turbo</option>
+                    <option value="qwen-image-3.0-pro">qwen-image-3.0-pro</option>
+                    <option value="wan2.7-image-pro">wan2.7-image-pro</option>
+                    <option value="wan2.7-image">wan2.7-image</option>
+                    <option value="wanx-style-repaint-v1">wanx-style-repaint-v1</option>
                     <option value="wanx-sketch-to-image-lite">wanx-sketch-to-image-lite</option>
-                    <option value="z-image-turbo">z-image-turbo（极速）</option>
                   </optgroup>
                 </select>
-                <p class="model-hint" id="edit-model-hint">千问图像 2.0 · 免费试用</p>
+                <p class="model-hint" id="edit-model-hint">✓ 推荐 · 带遮罩精修 · 框外零改动</p>
               </div>
               <div class="model-select-block">
                 <label class="model-label" for="select-detect-model">智能定位模型</label>
                 <select id="select-detect-model" class="model-select">
-                  <option value="local">本地快速检测（默认，瞬时）</option>
-                  <optgroup label="多模态视觉模型">
-                    <option value="qwen3.8-flash">qwen3.8-flash（推荐）</option>
+                  <option value="local">本地快速检测（瞬时）</option>
+                  <optgroup label="多模态视觉模型（推荐）">
+                    <option value="qwen3.8-flash">qwen3.8-flash（默认 · 精准）</option>
                     <option value="qwen3.8-max">qwen3.8-max</option>
                     <option value="qwen3.8-omni-flash">qwen3.8-omni-flash</option>
-                    <option value="qwen3.8-27b">qwen3.8-27b</option>
-                    <option value="kimi-k3">kimi-k3</option>
-                    <option value="qwen3.7-plus">qwen3.7-plus</option>
-                    <option value="qwen3.7-max-2026-06-08">qwen3.7-max-2026-06-08</option>
+                    <option value="qwen-vl-ocr">qwen-vl-ocr</option>
+                    <option value="qwen3.7-flash">qwen3.7-flash</option>
                   </optgroup>
                 </select>
               </div>
@@ -297,7 +305,7 @@
         </details>
         <details class="faq-item">
           <summary>你们的AI去水印工具是如何工作的？</summary>
-          <div class="faq-answer"><p>工具基于通义千问（Qwen）家族的大模型。定位阶段由多模态视觉模型识别水印包围盒；擦除阶段可选用 qwen-mt-image-2.0、wanx-sketch-to-image-lite 或 z-image-turbo 等免费试用图像模型，AI 分析标记周围的纹理、颜色和光照，智能地生成新的像素来重建该区域。</p></div>
+          <div class="faq-answer"><p>工具基于通义千问（Qwen）家族的大模型。定位阶段可选用 qwen3.8-flash 等多模态视觉模型识别水印包围盒；擦除阶段默认使用万相图像编辑模型（wanx2.1-imageedit）做带遮罩精修，AI 分析标记周围的纹理、颜色和光照，智能重建该区域，框外画面完全不变。下拉框中也列出了多款免费试用额度模型，选中后会自动以兼容引擎处理，保证正常出图。</p></div>
         </details>
         <details class="faq-item">
           <summary>支持哪些图片格式？</summary>

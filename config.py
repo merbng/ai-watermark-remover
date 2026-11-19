@@ -34,8 +34,8 @@ DASHSCOPE_COMPAT_BASE_URL = os.getenv(
 DASHSCOPE_MODEL_DEFAULT = os.getenv("DASHSCOPE_MODEL_DEFAULT", "wanx2.1-imageedit")
 DASHSCOPE_MODEL_FAST = os.getenv("DASHSCOPE_MODEL_FAST", "wanx2.1-imageedit")
 DASHSCOPE_MODEL_HQ = os.getenv("DASHSCOPE_MODEL_HQ", "wanx2.1-imageedit")
-# 视觉定位模型
-DASHSCOPE_VL_MODEL = os.getenv("DASHSCOPE_VL_MODEL", "qwen-vl-max-latest")
+# 视觉定位模型（实测 qwen3.8-flash 在本账号可用且定位精准；qwen-vl-max-latest 无权限）
+DASHSCOPE_VL_MODEL = os.getenv("DASHSCOPE_VL_MODEL", "qwen3.8-flash")
 
 # ---------- OpenAI 兼容（官方 / 任何中转）----------
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
