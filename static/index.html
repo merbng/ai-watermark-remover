@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 在线图片去水印 - 去除照片水印 | WatermarkZero</title>
+<meta name="description" content="基于通义千问大模型的 AI 在线图片去水印工具，专治图片右下角的「AI生成 / 豆包AI生成」标记，精准擦除、像素级还原，其余画面保持原样。免费、无需登录。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3C16 3 7 13.5 7 20a9 9 0 0 0 18 0c0-6.5-9-17-9-17z' fill='%23C05C2E'/%3E%3Ccircle cx='16' cy='20' r='4.2' fill='%23FAF7F2'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ========== 顶部导航 ========== -->
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="logo" href="#top">
+      <span class="logo-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="22" height="22"><path d="M16 3C16 3 7 13.5 7 20a9 9 0 0 0 18 0c0-6.5-9-17-9-17z" fill="currentColor"/><circle cx="16" cy="20" r="4.2" fill="var(--bg)"/></svg>
+      </span>
+      <span class="logo-text">WatermarkZero</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#showcase">效果展示</a>
+      <a href="#how">使用方法</a>
+      <a href="#features">核心功能</a>
+      <a href="#faq">常见问题</a>
+    </nav>
+    <a href="#tool" class="btn btn-primary btn-sm header-cta">立即去水印</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ========== Hero + 工具 ========== -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge">免费 · 无需登录 · 其余画面零改动</div>
+      <h1 class="hero-title">AI 在线图片去水印<span class="gradient-text"> - 去除照片水印</span></h1>
+      <p class="hero-sub">基于通义千问大模型，专治图片右下角的「AI生成 / 豆包AI生成」标记——AI 自动定位、精准擦除并重建背景，画面其余部分保持原样、一个像素都不改。</p>
+
+      <!-- 工具主体 -->
+      <div class="tool-card" id="tool">
+        <!-- 状态一：上传 -->
+        <div id="view-upload" class="tool-view">
+          <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="上传图片">
+            <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" hidden>
+            <div class="dz-icon">
+              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <p class="dz-main">拖放图片到这里，或<span class="dz-link">点击选择文件</span></p>
+            <p class="dz-sub">支持 JPG、PNG、WEBP 格式，最大 20MB</p>
+          </div>
+          <div id="upload-error" class="upload-error" hidden></div>
+        </div>
+
+        <!-- 状态二：确认标记位置 -->
+        <div id="view-editor" class="tool-view" hidden>
+          <div class="editor-layout">
+            <div class="canvas-wrap" id="canvas-wrap">
+              <canvas id="base-canvas"></canvas>
+              <div id="mark-box" class="mark-box">
+                <span class="mark-label">AI生成标记</span>
+                <span class="mark-handle" data-corner="nw"></span>
+                <span class="mark-handle" data-corner="ne"></span>
+                <span class="mark-handle" data-corner="sw"></span>
+                <span class="mark-handle" data-corner="se"></span>
+              </div>
+              <div class="canvas-hint" id="canvas-hint">拖动框体或四角圆点微调位置，框住整个标记</div>
+            </div>
+            <div class="editor-side">
+              <div class="detect-status" id="detect-status">
+                <span class="dot ok"></span><span id="detect-text">已自动定位右下角标记</span>
+              </div>
+              <div class="model-select-block">
+                <label class="model-label" for="select-edit-model">去水印引擎</label>
+                <select id="select-edit-model" class="model-select">
+                  <optgroup label="图像编辑模型">
+                    <option value="wanx2.1-imageedit">wanx2.1-imageedit（默认）</option>
+                    <option value="wan2.7-image-pro">wan2.7-image-pro（极速）</option>
+                    <option value="qwen-image-3.0">Qwen-Image-3.0（高清 2K）</option>
+                  </optgroup>
+                </select>
+                <p class="model-hint" id="edit-model-hint">均衡 · 遮罩精修 · 约 15~40 秒</p>
+              </div>
+              <div class="model-select-block">
+                <label class="model-label" for="select-detect-model">智能定位模型</label>
+                <select id="select-detect-model" class="model-select">
+                  <option value="local">本地快速检测（默认，瞬时）</option>
+                  <optgroup label="多模态视觉模型">
+                    <option value="qwen3.8-flash">qwen3.8-flash（推荐）</option>
+                    <option value="qwen3.8-max">qwen3.8-max</option>
+                    <option value="qwen3.8-omni-flash">qwen3.8-omni-flash</option>
+                    <option value="qwen3.8-27b">qwen3.8-27b</option>
+                    <option value="kimi-k3">kimi-k3</option>
+                    <option value="qwen3.7-plus">qwen3.7-plus</option>
+                    <option value="qwen3.7-max-2026-06-08">qwen3.7-max-2026-06-08</option>
+                  </optgroup>
+                </select>
+              </div>
+              <button id="btn-redetect" class="btn btn-ghost btn-sm btn-block" type="button">重新检测标记位置</button>
+              <button id="btn-remove" class="btn btn-primary btn-lg btn-block" type="button">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M6.5 7l.8 12a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9l.8-12"/></svg>
+                去除 AI 生成标记
+              </button>
+              <button id="btn-change" class="btn btn-ghost btn-sm btn-block" type="button">换一张图片</button>
+              <div class="editor-meta" id="editor-meta"></div>
+              <p class="side-note">✅ 仅框内区域会被 AI 重建，画面其余部分保持原始像素不变</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 状态三：处理中 -->
+        <div id="view-processing" class="tool-view" hidden>
+          <div class="processing">
+            <div class="spinner"></div>
+            <p class="processing-stage" id="processing-stage">正在上传图片…</p>
+            <p class="processing-elapsed" id="processing-elapsed">0s</p>
+            <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+            <p class="processing-tip" id="processing-tip">AI 正在重建标记下方的背景，通常需要 10 ~ 40 秒</p>
+          </div>
+        </div>
+
+        <!-- 状态四：结果 -->
+        <div id="view-result" class="tool-view" hidden>
+          <div class="result-head">
+            <span class="result-ok">✔ 标记已去除</span>
+            <span class="result-dims" id="result-dims"></span>
+          </div>
+          <div class="compare" id="result-compare">
+            <img id="result-before" alt="原始图片">
+            <div class="compare-after" id="result-after-wrap">
+              <img id="result-after" alt="去除标记后">
+            </div>
+            <div class="compare-handle" id="result-handle">
+              <div class="compare-line"></div>
+              <div class="compare-knob">↔</div>
+            </div>
+            <span class="compare-tag tag-before">原始</span>
+            <span class="compare-tag tag-after">去除标记后</span>
+          </div>
+          <div class="result-actions">
+            <button id="btn-download" class="btn btn-primary btn-lg" type="button">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              下载图片
+            </button>
+            <button id="btn-retry" class="btn btn-outline" type="button">调整位置重试</button>
+            <button id="btn-new" class="btn btn-ghost" type="button">换一张图片</button>
+          </div>
+          <p class="result-note" id="result-note"></p>
+        </div>
+      </div>
+
+      <p class="hero-trust">🔒 图片仅在处理时临时使用，处理完成即从内存释放，我们不做任何存储</p>
+    </div>
+  </section>
+
+  <!-- ========== 效果展示 ========== -->
+  <section class="section" id="showcase">
+    <div class="container">
+      <h2 class="section-title">WatermarkZero 去标记效果展示</h2>
+      <p class="section-sub">无论深色背景、浅色纹理还是复杂夜景，右下角的 AI 生成标记都能被干净擦除。</p>
+      <div class="showcase-grid">
+        <article class="showcase-card">
+          <div class="compare" data-before="img/demo_before_0.jpg" data-after="img/demo_after_0.jpg">
+            <img src="img/demo_before_0.jpg" alt="AI生成标记原图" loading="lazy">
+            <div class="compare-after"><img src="img/demo_after_0.jpg" alt="去除标记后" loading="lazy"></div>
+            <div class="compare-handle"><div class="compare-line"></div><div class="compare-knob">↔</div></div>
+            <span class="compare-tag tag-before">原始</span>
+            <span class="compare-tag tag-after">去除标记后</span>
+          </div>
+          <h3>浅色纹理背景，照样擦干净</h3>
+          <p>AI 精准定位右下角的「AI生成」标记，重建其下方的木纹与食物细节，不留任何涂抹或模糊痕迹。</p>
+        </article>
+        <article class="showcase-card">
+          <div class="compare" data-before="img/demo_before_1.jpg" data-after="img/demo_after_1.jpg">
+            <img src="img/demo_before_1.jpg" alt="豆包AI生成标记原图" loading="lazy">
+            <div class="compare-after"><img src="img/demo_after_1.jpg" alt="去除标记后" loading="lazy"></div>
+            <div class="compare-handle"><div class="compare-line"></div><div class="compare-knob">↔</div></div>
+            <span class="compare-tag tag-before">原始</span>
+            <span class="compare-tag tag-after">去除标记后</span>
+          </div>
+          <h3>「豆包AI生成」标记一键去除</h3>
+          <p>无论是「AI生成」还是「豆包AI生成」，AI 都能识别标记文字并重建下方的水面倒影，画面自然如初。</p>
+        </article>
+        <article class="showcase-card">
+          <div class="compare" data-before="img/demo_before_2.jpg" data-after="img/demo_after_2.jpg">
+            <img src="img/demo_before_2.jpg" alt="带图标标记原图" loading="lazy">
+            <div class="compare-after"><img src="img/demo_after_2.jpg" alt="去除标记后" loading="lazy"></div>
+            <div class="compare-handle"><div class="compare-line"></div><div class="compare-knob">↔</div></div>
+            <span class="compare-tag tag-before">原始</span>
+            <span class="compare-tag tag-after">去除标记后</span>
+          </div>
+          <h3>复杂夜景 + 带图标标记</h3>
+          <p>霓虹倒影与灯光交织的夜景中，带小图标的标记也能被完整擦除，重建区域与周围光影无缝衔接。</p>
+        </article>
+        <article class="showcase-card">
+          <div class="compare" data-before="img/demo_before_3.jpg" data-after="img/demo_after_3.jpg">
+            <img src="img/demo_before_3.jpg" alt="半透明标记原图" loading="lazy">
+            <div class="compare-after"><img src="img/demo_after_3.jpg" alt="去除标记后" loading="lazy"></div>
+            <div class="compare-handle"><div class="compare-line"></div><div class="compare-knob">↔</div></div>
+            <span class="compare-tag tag-before">原始</span>
+            <span class="compare-tag tag-after">去除标记后</span>
+          </div>
+          <h3>半透明标记无处遁形</h3>
+          <p>低透明度的半透明标记同样逃不过 AI 的眼睛——擦除后桌面木纹与人像细节完好如初。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 使用方法 ========== -->
+  <section class="section section-alt" id="how">
+    <div class="container">
+      <h2 class="section-title">如何使用去水印工具</h2>
+      <p class="section-sub">只需简单三步，即可轻松去除 AI 生成标记：</p>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-num"><span>1</span></div>
+          <h3>1. 上传您的图片</h3>
+          <p>拖放您的文件或点击从您的设备中选择一张图片。我们支持 JPG、PNG 和 WEBP 格式。</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num"><span>2</span></div>
+          <h3>2. AI 自动框选标记</h3>
+          <p>AI 自动扫描右下角并框选「AI生成 / 豆包AI生成」标记，您也可以拖动框体微调位置。</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num"><span>3</span></div>
+          <h3>3. 一键擦除并下载</h3>
+          <p>AI 重建标记下方的背景像素，其余画面保持原样，下载原始分辨率的干净图片。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 核心功能 ========== -->
+  <section class="section" id="features">
+    <div class="container">
+      <h2 class="section-title">去水印工具的核心功能</h2>
+      <p class="section-sub">一款更先进的 AI 生成标记去除工具。</p>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" opacity=".4"/></svg></div>
+          <h3>AI 精准定位</h3>
+          <p>自动扫描图片右下角，框选「AI生成 / 豆包AI生成」标记，无需手动寻找，也可拖动框体微调。</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M13 9h6M13 13h6M13 17h6" opacity=".6"/><path d="M7 8l2 2 3-3" /></svg></div>
+          <h3>只动一处，其余零改动</h3>
+          <p>AI 重建结果仅应用到标记框内，框外的每一个像素都与原图完全一致，绝不画蛇添足。</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg></div>
+          <h3>真正的智能修复技术</h3>
+          <p>不是简单的涂抹或模糊。基于通义千问图像编辑大模型，AI 分析周围纹理、颜色和光照，智能重建标记下方的像素。</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+          <h3>闪电般的处理速度</h3>
+          <p>无需等待。上传、确认、下载，通常十几秒完成。您立即取回干净的图像，节省宝贵时间。</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></div>
+          <h3>高分辨率输出</h3>
+          <p>我们尊重您的画质。导出图片与上传时具有相同的原始分辨率，无压缩损失。</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></div>
+          <h3>安全与隐私</h3>
+          <p>我们尊重您的隐私。所有处理均在您的浏览器与临时通道中完成，图片不会被存储，也不会被用于任何其他用途。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 常见问题 ========== -->
+  <section class="section section-alt" id="faq">
+    <div class="container container-narrow">
+      <h2 class="section-title">关于去水印工具的常见问题</h2>
+      <p class="section-sub">还有其他问题？欢迎通过电子邮件联系我们。</p>
+      <div class="faq-list">
+        <details class="faq-item" open>
+          <summary>WatermarkZero是什么？</summary>
+          <div class="faq-answer"><p>WatermarkZero是一款在线去水印工具，专注去除图片右下角的「AI生成 / 豆包AI生成」标记。它不是简单地涂抹或模糊标记，而是智能地重建其背后的背景。最终得到的是一张完美干净、自然的照片，仿佛标记从未存在过。</p></div>
+        </details>
+        <details class="faq-item">
+          <summary>这款在线去水印服务真的免费吗？</summary>
+          <div class="faq-answer"><p>是的，完全免费使用，无需登录，也无需安装任何软件。</p></div>
+        </details>
+        <details class="faq-item">
+          <summary>这款工具可以去除哪种水印？</summary>
+          <div class="faq-answer"><p>专治图片右下角的「AI生成」「豆包AI生成」等 AI 生成标记，包括白色实心、半透明以及带小图标的样式。其他位置或类型的水印暂不支持。</p></div>
+        </details>
+        <details class="faq-item">
+          <summary>会改动图片的其他区域吗？</summary>
+          <div class="faq-answer"><p>不会。AI 重建的结果只应用在标记框内，框外的每一个像素都与原图完全一致。如果您发现框选范围偏大，可以先拖动缩小框体再处理。</p></div>
+        </details>
+        <details class="faq-item">
+          <summary>你们的AI去水印工具是如何工作的？</summary>
+          <div class="faq-answer"><p>工具基于通义千问（Qwen）家族的大模型。定位阶段可选用 qwen3.8 / qwen3.7 / kimi-k3 等多模态视觉模型识别水印包围盒；擦除阶段可选用 wanx2.1-imageedit、wan2.7-image-pro 或 Qwen-Image-3.0 图像编辑模型，AI 分析标记周围的纹理、颜色和光照，智能地生成新的像素来重建该区域。</p></div>
+        </details>
+        <details class="faq-item">
+          <summary>支持哪些图片格式？</summary>
+          <div class="faq-answer"><p>我们目前支持最常见的图像格式（JPG、PNG、WEBP），单个文件最大 20MB。</p></div>
+        </details>
+        <details class="faq-item">
+          <summary>自动检测不准怎么办？</summary>
+          <div class="faq-answer"><p>标记框支持拖动移动和四角缩放。如果自动检测位置有偏差，直接拖动框体微调，框住完整标记后再点击去除即可。</p></div>
+        </details>
+        <details class="faq-item">
+          <summary>去除图片标记是否违法？</summary>
+          <div class="faq-answer"><p>这取决于图像的版权以及您的使用意图。本工具旨在用于合法目的，例如创作者管理自己生成的作品。我们坚决要求所有用户尊重版权法，并拒绝为任何侵犯版权的行为提供服务。</p></div>
+        </details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <span class="logo-icon"><svg viewBox="0 0 32 32" width="18" height="18"><path d="M16 3C16 3 7 13.5 7 20a9 9 0 0 0 18 0c0-6.5-9-17-9-17z" fill="currentColor"/><circle cx="16" cy="20" r="4.2" fill="var(--bg)"/></svg></span>
+      <span>WatermarkZero — AI 在线图片去水印</span>
+    </div>
+    <p class="footer-legal">请仅对您拥有合法权利的图片使用本工具。未经授权去除他人作品的水印并用于公开或商业用途可能构成侵权，请尊重版权法。</p>
+  </div>
+</footer>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

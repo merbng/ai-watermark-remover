@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: ai-watermark-remover
+    env: python
+    region: singapore
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app -b 0.0.0.0:$PORT --timeout 300 --workers 1"
+    healthCheckPath: /api/health
+    envVars:
+      # opencv 本地修复引擎：免费、无需 Key、云端可直接跑，零配置真去水印
+      - key: EDIT_PROVIDER
+        value: opencv
+      # 云端无法访问本机反代，定位用本地像素检测（瞬时、无需 Key）
+      - key: DETECT_PROVIDER
+        value: opencv
+      # 想升级为生成式 AI 擦除时，在 Render Dashboard 里把 EDIT_PROVIDER
+      # 改为 dashscope 并新增 DASHSCOPE_API_KEY 环境变量即可（Key 不要写进此文件）。
