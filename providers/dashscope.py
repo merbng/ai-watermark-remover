@@ -21,12 +21,18 @@ DETECT_PROMPT = (
 )
 
 # 前端模型名 -> 我方配置里的真实模型名
+# 前端下拉框现为三款免费试用模型：qwen-mt-image-2.0 / wanx-sketch-to-image-lite / z-image-turbo。
+# 这三款本身即为百炼可用模型 id，原样透传；未知值回退到默认模型。
+_FRONT_EDIT_MODELS = {
+    "qwen-mt-image-2.0",
+    "wanx-sketch-to-image-lite",
+    "z-image-turbo",
+}
+
 def _map_edit_model(front_model: str) -> str:
     m = (front_model or "").strip()
-    if m == "wan2.7-image-pro":
-        return config.DASHSCOPE_MODEL_FAST
-    if m == "qwen-image-3.0":
-        return config.DASHSCOPE_MODEL_HQ
+    if m in _FRONT_EDIT_MODELS:
+        return m
     return config.DASHSCOPE_MODEL_DEFAULT
 
 

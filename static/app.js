@@ -15,9 +15,9 @@ const REMOVE_PROMPT =
 
 /* ---------- 模型注册表（与后端一致） ---------- */
 const EDIT_MODELS = {
-  'wanx2.1-imageedit': { hint: '均衡 · 遮罩精修 · 约 15~40 秒', tip: '通常需要 15 ~ 40 秒' },
-  'wan2.7-image-pro': { hint: '极速 · 约 10~20 秒', tip: '该模型速度极快，通常 10 ~ 20 秒完成' },
-  'qwen-image-3.0': { hint: '高清 2K 重建 · 约 40~80 秒', tip: '该模型重建精度最高，通常 40 ~ 80 秒完成' },
+  'qwen-mt-image-2.0': { hint: '千问图像 2.0 · 免费试用', tip: '免费试用模型，通常 10 ~ 30 秒' },
+  'wanx-sketch-to-image-lite': { hint: '万相涂鸦 · 免费试用 · 轻量快速', tip: '轻量模型，通常 10 ~ 20 秒' },
+  'z-image-turbo': { hint: 'Z-Image-Turbo · 免费试用 · 极速', tip: '极速模型，通常 10 ~ 20 秒' },
 };
 
 const state = {
@@ -408,9 +408,17 @@ markBox.addEventListener('pointermove', (e) => {
 ['pointerup', 'pointercancel'].forEach(ev => markBox.addEventListener(ev, () => { boxDrag = null; }));
 
 $('btn-redetect').addEventListener('click', runDetection);
-$('btn-change').addEventListener('click', () => switchView('upload'));
-$('btn-new').addEventListener('click', () => switchView('upload'));
-$('btn-retry').addEventListener('click', () => switchView('editor'));
+// 回到上传视图时滚回页面顶部（结果页通常在页面底部，不滚会停在底部）
+function backToUpload() {
+  switchView('upload');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+$('btn-change').addEventListener('click', backToUpload);
+$('btn-new').addEventListener('click', backToUpload);
+$('btn-retry').addEventListener('click', () => {
+  switchView('editor');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
 
 /* ---------------- 送检准备 ---------------- */
 function buildAIImage() {

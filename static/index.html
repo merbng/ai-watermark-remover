@@ -74,13 +74,13 @@
               <div class="model-select-block">
                 <label class="model-label" for="select-edit-model">去水印引擎</label>
                 <select id="select-edit-model" class="model-select">
-                  <optgroup label="图像编辑模型">
-                    <option value="wanx2.1-imageedit">wanx2.1-imageedit（默认）</option>
-                    <option value="wan2.7-image-pro">wan2.7-image-pro（极速）</option>
-                    <option value="qwen-image-3.0">Qwen-Image-3.0（高清 2K）</option>
+                  <optgroup label="图像编辑模型（免费试用）">
+                    <option value="qwen-mt-image-2.0">qwen-mt-image-2.0（默认）</option>
+                    <option value="wanx-sketch-to-image-lite">wanx-sketch-to-image-lite</option>
+                    <option value="z-image-turbo">z-image-turbo（极速）</option>
                   </optgroup>
                 </select>
-                <p class="model-hint" id="edit-model-hint">均衡 · 遮罩精修 · 约 15~40 秒</p>
+                <p class="model-hint" id="edit-model-hint">千问图像 2.0 · 免费试用</p>
               </div>
               <div class="model-select-block">
                 <label class="model-label" for="select-detect-model">智能定位模型</label>
@@ -297,7 +297,7 @@
         </details>
         <details class="faq-item">
           <summary>你们的AI去水印工具是如何工作的？</summary>
-          <div class="faq-answer"><p>工具基于通义千问（Qwen）家族的大模型。定位阶段可选用 qwen3.8 / qwen3.7 / kimi-k3 等多模态视觉模型识别水印包围盒；擦除阶段可选用 wanx2.1-imageedit、wan2.7-image-pro 或 Qwen-Image-3.0 图像编辑模型，AI 分析标记周围的纹理、颜色和光照，智能地生成新的像素来重建该区域。</p></div>
+          <div class="faq-answer"><p>工具基于通义千问（Qwen）家族的大模型。定位阶段由多模态视觉模型识别水印包围盒；擦除阶段可选用 qwen-mt-image-2.0、wanx-sketch-to-image-lite 或 z-image-turbo 等免费试用图像模型，AI 分析标记周围的纹理、颜色和光照，智能地生成新的像素来重建该区域。</p></div>
         </details>
         <details class="faq-item">
           <summary>支持哪些图片格式？</summary>
