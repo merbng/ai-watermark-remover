@@ -6,6 +6,18 @@
 
 const $ = (id) => document.getElementById(id);
 
+/* ---------- 版本号校准（后端 /api/health 为权威来源，防止浏览器缓存旧页面） ---------- */
+(async function syncVersion() {
+  try {
+    const res = await fetch('/api/health');
+    const data = await res.json();
+    if (data && data.version) {
+      document.querySelectorAll('.app-version').forEach(el => { el.textContent = data.version; });
+      console.log('[WatermarkZero] 当前版本:', data.version);
+    }
+  } catch (e) { /* 静默，保留页面内置版本号 */ }
+})();
+
 const MAX_UPLOAD = 20 * 1024 * 1024;  // 20MB
 const AI_MAX_SIDE = 1600;             // 送检给 AI 的最长边
 const DETECT_MAX_SIDE = 800;          // 智能定位用图最长边

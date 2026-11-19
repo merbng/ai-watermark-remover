@@ -55,6 +55,21 @@ img { display: block; max-width: 100%; }
 .nav-links a:hover { color: var(--fg-strong); }
 .header-cta { margin-left: 0.5rem; }
 
+/* ---------- 版本徽章 ---------- */
+.version-badge {
+  display: inline-flex; align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.footer-meta { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+
 /* ---------- 按钮 ---------- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;

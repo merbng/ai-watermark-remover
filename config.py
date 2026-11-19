@@ -9,6 +9,9 @@ provider，由 provider 决定如何映射到你账号里真实可用的模型�
 """
 import os
 
+# ---------- 版本号（每次改动必须递增，并同步展示在网页顶部导航与页脚） ----------
+APP_VERSION = "v2.1"
+
 
 def _int(name: str, default: int) -> int:
     try:
@@ -67,6 +70,7 @@ def detect_provider_name() -> str:
 def describe() -> dict:
     """给 /api/health 用的脱敏配置摘要。"""
     return {
+        "version": APP_VERSION,
         "edit_provider": EDIT_PROVIDER,
         "detect_provider": DETECT_PROVIDER,
         "dashscope_key_set": bool(DASHSCOPE_API_KEY),
